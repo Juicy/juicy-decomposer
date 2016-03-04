@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+<head>
+
+    <meta charset="utf-8">
+    <title>&lt;juicy-composer&gt;</title>
+    <link rel="stylesheet" href="http://juicy.github.io/github-markdown-css/github-markdown.css">
+
+    <!-- Imports polyfill -->
+    <script src="../webcomponentsjs/webcomponents.min.js"></script>
+
+    <!-- Imports custom element -->
+    <link rel="import" href="juicy-composer.html">
+    <link rel="import" href="../juicy-tile-list/src/juicy-tile-list.html">
+    <style>
+        juicy-composer > *{
+            background-color: lightpink;
+        }
+        juicy-composer > div > *{
+            background-color: lightgreen;
+        }
+    </style>
+</head>
+<body class="markdown-body">
+
+    <!-- Runs custom element -->
+    <juicy-composer element-name="juicy-tile-table" setup='{
+
+    }'>
+    <juicy-tile-group name="People"></juicy-tile-group>
+    <!-- <link rel="import" href="/sys/puppet-redirect/puppet-redirect.html" /> -->
+
+        <!-- <template is="dom-bind"> -->
+            <div juicy-style="height: 200px; width: 50%; priority: 0.1;">
+                <h2>Person details</h2>
+            </div>
+            <div>
+                <label class="control-label">First name:</label>
+                <input type="text" value="{{model.FirstName$::change}}" placeholder="First name" class="form-control" />
+            </div>
+            <div class="form-horizontal">
+                <label class="control-label">Last name:</label>
+            </div>
+            <div>
+                <input type="text" value="{{model.LastName$::change}}" placeholder="Last name" class="form-control" />
+            </div>
+            <div class="addresses-label">>
+                    <label class="control-label">This person does not have addresses yet. Press <b>Add address</b> to add some.</label>
+            </div>
+            <div class="addresses">
+                repeat addresses
+                <template is="dom-repeat" items="{{model.Addresses}}">
+                    <starcounter-include partial="{{item}}"></starcounter-include>
+                </template>
+            </div>
+            <div>
+                <button type="button" class="btn btn-default btn-sm" onclick="++this.value;" value="{{model.AddAddress$::click}}">Add address</button>
+            </div>
+            <div>
+                <template is="dom-if" if="{{model.EmailAddresses.length}}">
+                    <label class="control-label">Emails:</label>
+                </template>
+                <template is="dom-if" if="{{!model.EmailAddresses.length}}">
+                    <label class="control-label">This person does not have email addresses yet. Press <b>Add email address</b> to add some.</label>
+                </template>
+            </div>
+            <div>
+                <template is="dom-repeat" items="{{model.EmailAddresses}}">
+                    <starcounter-include partial="{{item}}"></starcounter-include>
+                </template>
+            </div>
+            <div>
+                <button type="button" class="btn btn-default btn-sm" onclick="++this.value;" value="{{model.AddEmailAddress$::click}}">Add email address</button>
+            </div>
+            <div>
+                <template is="dom-if" if="{{model.PhoneNumbers.length}}">
+                    <label class="control-label">Phones:</label>
+                </template>
+                <template is="dom-if" if="{{!model.PhoneNumbers.length}}">
+                    <label class="control-label">This person does not have phone numbers yet. Press <b>Add phone number</b> to add some.</label>
+                </template>
+            </div>
+            <div>
+                <template is="dom-repeat" items="{{model.PhoneNumbers}}">
+                    <starcounter-include partial="{{item}}"></starcounter-include>
+                </template>
+            </div>
+            <div>
+                <button type="button" class="btn btn-default btn-sm" onclick="++this.value;" value="{{model.AddPhoneNumber$::click}}">Add phone number</button>
+            </div>
+            <div>
+                <button type="button" class="btn btn-primary" onclick="++this.value;" value="{{model.Save$::click}}">Save</button>
+            </div>
+            <div>
+                <button type="button" class="btn btn-default" onclick="++this.value;" value="{{model.Cancel$::click}}">Cancel</button>
+            </div>
+            <!-- <template is="imported-template" content="/People/viewmodels/ConfirmDialogPage.html">
+            </template> -->
+            <!-- <link is="puppet-redirect" history url="{{model.RedirectUrl$}}" /> -->
+        <!-- </template> -->
+    </juicy-composer>
+
+</body>
+</html>

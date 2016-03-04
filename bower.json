@@ -1,0 +1,28 @@
+{
+  "name": "juicy-composer",
+  "version": "0.0.0",
+  "description": "Awesome, Juicy Custom Element",
+  "license": "MIT",
+  "main": "juicy-composer.html",
+  "keywords": [
+    "web-components",
+    "juicy"
+  ],
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "preview.png",
+    "package.json",
+    "Gruntfile.json"
+  ],
+  "dependencies": {
+    "webcomponentsjs": "^0.7.2"
+  },
+  "devDependencies": {
+    "web-component-tester": "^4.2.1",
+    "juicy-tile-list": "^1.3.0",
+    "polymer": "^1.3.1"
+  }
+}

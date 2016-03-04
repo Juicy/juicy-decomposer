@@ -1,0 +1,180 @@
+<!-- juicy-composer @version: 0.0.0 @license: MIT -->
+<template id="shadow">
+    <style>
+        .exploded{
+            display: none;
+        }
+        .juicy-composer{
+            border: 1px solid black;
+            padding: 0.3em;
+            margin: 0.3em;
+        }
+    </style>
+    <!-- get component name from attribute -->
+    <!-- <juicy-tile-list style="border: 1px solid black;"> -->
+        <!-- In case of Shadow DOM v1, that would be enough -->
+        <!-- <slot name="juicy-composer" later_slot=".."></slot> -->
+        <!-- With v0 we need to create insertion point for every tile amually -->
+        <!-- <div><content select="[juicy-composer]"></content></div> -->
+    <!-- </juicy-tile-list> -->
+    <content></content>
+</template>
+<template id="tile-decorator">
+    <div class="juicy-composer"><content></content></div>
+</template>
+<script>
+(function() {
+    var templ = (document._currentScript || document.currentScript).ownerDocument.getElementById("shadow").content;
+    var tileDecorator = (document._currentScript || document.currentScript).ownerDocument.getElementById("tile-decorator").content;
+    // Creates an object based in the HTML Element prototype
+    var JuicyElementPrototype = Object.create(HTMLElement.prototype);
+
+    JuicyElementPrototype.listName = "juicy-tile-list___";
+    // Fires when an instance of the element is created
+    // TODO mutation observer
+    JuicyElementPrototype.createdCallback = function() {
+        console.info('created children.length', this.children.length);
+        this.setup = {
+            'People/1': true
+        };
+
+
+        var template = document.importNode(templ, true);
+        this.shadowContainer = document.createElement(this.listName);
+        //for debugginh
+        this.shadowContainer.style.border = '1px solid black';
+        //
+        template.insertBefore(this.shadowContainer, template.firstChild);
+        var shadowRoot = this.createShadowRoot();
+        // var shadowRoot = this.attachShadow({mode: "open"});
+        shadowRoot.appendChild(template);
+    };
+
+    // Fires when an instance was inserted into the document
+    JuicyElementPrototype.attachedCallback = function() {
+        console.info('attached children.length', this.children.length);
+        // debugger
+        this.distributeNodes();
+    };
+
+    // Fires when an instance was removed from the document
+    JuicyElementPrototype.detachedCallback = function() {};
+
+    // Fires when an attribute was added, removed, or updated
+    JuicyElementPrototype.attributeChangedCallback = function(attr, oldVal, newVal) {
+        switch(attr){
+            case "list-name":
+                this.listName = newVal;
+                this.createdCallback();
+                // TODO: replace nested structure
+                break;
+                // TODO setup change
+        }
+    };
+
+    JuicyElementPrototype.distributeNodes = function(){
+        // <V1 slot shim>
+        this.shadowRoot.firstElementChild.appendChild(
+            distributeJuicyElements(Array.prototype.slice.call(this.children, 0), this.setup, '',  0, this)
+        );
+        // </V1 slot shim>
+    }
+
+    function distributeJuicyElements(nodesList, conf, prefix, shift, parent, fragment){
+        var tiles = [], tile, child,
+            id, scopePrefix = '', scopedIndex = 0;
+        // <css display contents shim>
+        var nodesList = nodesList.filter(function(el){
+            return !el._juicyExplodedParent || el._juicyExplodedParent == parent;
+        });
+        // </css display contents shim>
+        // <V1 slot shim>
+        if(!fragment){
+            fragment = document.createDocumentFragment();
+        }
+        // </V1 slot shim>
+        for (var nodeNo = 0, len = nodesList.length; nodeNo < len; nodeNo++) {
+            child = nodesList[nodeNo];
+            // id scoping magic
+            //
+            if (child.tagName === "JUICY-TILE-GROUP") {
+                scopePrefix = child.getAttribute("name") || "";
+                scopePrefix += "/";
+                scopedIndex = 0;
+                continue;
+            }
+            id = prefix + scopePrefix + scopedIndex;
+            scopedIndex++;
+            //id = i;
+
+            // <V1 slot shim>
+            frag = document.importNode(tileDecorator, true);
+            tile = frag.firstElementChild;
+            tile.id = id;
+            tile.parent = child;
+            tile.firstChild.setAttribute("select", "[juicy-composer='" + id + "']");
+            fragment.appendChild(frag);
+            // </V1 slot shim>
+            // exploding:
+            var grandChilden = Array.prototype.slice.call(child.children,0);
+            // node is not exploded
+            if(!child._juicyExplodedChildren){
+                // yet
+                if(conf[id]){
+                    // child.style.disaply = 'contents';
+                    // <css display contents shim>
+                    var parent = child.parentNode;
+                    // TODO: do filtering like for j-t-l?
+                    for(var explodedNo = 0, toExplode = grandChilden.length; explodedNo < toExplode; explodedNo++){
+                        grandChilden[explodedNo]._juicyExplodedParent = child;
+                        parent.insertBefore(grandChilden[explodedNo], child.nextSibling);
+                    }
+                    child._juicyOldDisplay = child.style.display;
+                    child.style.display = 'none';
+                    tile.classList.add('exploded');
+                    child._juicyExplodedChildren = grandChilden;
+                    distributeJuicyElements(grandChilden, conf[id], id + '/', 0, child, fragment);
+                    // </css display contents shim>
+                }
+            } else {
+                console.warn(1);
+                grandChilden = child._juicyExplodedChildren;
+                // node is exploded
+                // and should be
+                if(conf[id]){
+
+                } else {
+                    // and should not be
+                    // move children back
+                    for(var implodedNo = 0, toImplode = grandChilden.length; implodedNo < toImplode; implodedNo++){
+                        grandChilden[implodedNo]._juicyExplodedParent = null;
+                        child.appendChild(grandChilden[implodedNo]);
+                    }
+                    child._juicyExplodedChildren = null;
+                    child.style.display = child._juicyOldDisplay;
+                    tile.classList.remove('exploded');
+                }
+                // check descendeants
+                distributeJuicyElements(grandChilden, conf[id], id + '/', 0, child, fragment);
+            }
+            //if (elem.setAttribute) {
+            // attach a selectable key to each light-dom node
+            child.setAttribute('juicy-composer', id);
+            // // specify a <content> with that key
+            // tiles.push(tile);
+            // // add also key based
+            // tiles[id] = tile;
+            // // tiles.push(child);
+            //}
+        }
+        // <V1 slot shim>
+        return fragment;
+        // </V1 slot shim>
+
+    }
+
+    document.registerElement('juicy-composer', {
+        prototype: JuicyElementPrototype
+    });
+}());
+</script>

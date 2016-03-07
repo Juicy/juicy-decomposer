@@ -14,6 +14,9 @@
     <link rel="import" href="../../juicy-tile-list/src/juicy-tile-list.html">
     <link rel="import" href="../../polymer/polymer.html">
     <style>
+        body.markdown-body{
+            overflow: auto;
+        }
         juicy-composer > *{
             background-color: lightpink;
         }
@@ -29,8 +32,8 @@
         <juicy-composer element-name="juicy-tile-table" setup='{
 
         }'>
-        <template is="dom-bind">
         <juicy-tile-group name="People"></juicy-tile-group>
+        <template is="dom-bind">
         <!-- <link rel="import" href="/sys/puppet-redirect/puppet-redirect.html" /> -->
 
             <!-- <template is="dom-bind"> -->

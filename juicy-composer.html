@@ -30,15 +30,41 @@
     var JuicyElementPrototype = Object.create(HTMLElement.prototype);
 
     JuicyElementPrototype.listName = "juicy-tile-list___";
+
+    // <V1 assignedSlot shim>
+    /**
+     * Map of shadow DOM elements (shimmed slots)
+     * @type {Object}
+     */
+    JuicyElementPrototype.elementsMap = null;
+    // </V1 assignedSlot shim>
     // Fires when an instance of the element is created
     // TODO mutation observer
     JuicyElementPrototype.createdCallback = function() {
+        var that = this;
         console.info('created children.length', this.children.length);
         this.setup = {
             'People/1': true
         };
+        this.elementsMap = {};
+
+        this.stamp();
 
 
+        this.observer = new MutationObserver(function (mutations) {
+            // do nothing if it's not yet attached
+            if(!that.isStamped){
+              return;
+            }
+            // update / distribute juicy-elements on each mutation
+            mutations.forEach(that.update);
+
+        });
+        // IDEA: make it cofigurable?
+        this.observer.observe(this, { childList: true });
+    };
+
+    JuicyElementPrototype.stamp = function(){
         var template = document.importNode(templ, true);
         this.shadowContainer = document.createElement(this.listName);
         //for debugginh
@@ -47,15 +73,53 @@
         template.insertBefore(this.shadowContainer, template.firstChild);
         var shadowRoot = this.createShadowRoot();
         // var shadowRoot = this.attachShadow({mode: "open"});
+
+        // <V1 slot shim>
+        // adding it to a this.shadowContainer manually
+        distributeJuicyElements(this.elementsMap, filterElements(this.children), this.setup, '',  0, this, this.shadowContainer)
+        // </V1 slot shim>
+
         shadowRoot.appendChild(template);
-    };
+        this.isStamped = true;
+    }
+
+    JuicyElementPrototype.clear = function(){
+        console.error('clear is not yet defined!');
+    }
 
     // Fires when an instance was inserted into the document
     JuicyElementPrototype.attachedCallback = function() {
         console.info('attached children.length', this.children.length);
         // debugger
-        this.distributeNodes();
+        // this.distributeNodes();
     };
+    JuicyElementPrototype.update = function(mutation){
+        if (mutation.addedNodes.length || mutation.removedNodes.length) {
+            var element = mutation.target || this;
+            // TODO: make it cleaner
+            element.observer.disconnect();
+
+
+            if(mutation.addedNodes.length){
+                var previousElementSibling = mutation.previousSibling && !(mutation.previousSibling instanceof HTMLElement) ?
+                    mutation.previousSibling.previousElementSibling :  mutation.previousSibling;
+                var scopedIndex = previousElementSibling && previousElementSibling._juicyScopedIndex || -1;
+                scopedIndex++;
+                var scopePrefix = previousElementSibling && previousElementSibling._juicyScopePrefix || '';
+
+                var nodesToDistribute = filterElements(mutation.addedNodes);
+                console.log('adding nodes to', element, 'prefixed by', scopePrefix, 'starting from index', scopedIndex);
+                distributeJuicyElements(element.elementsMap, nodesToDistribute, element.setup, '', 0, element, element.shadowContainer, scopePrefix, scopedIndex);
+            }
+            if(mutation.removedNodes.length){
+                undistributeJuicyElements(element.elementsMap, mutation.removedNodes);
+            }
+            console.error('update does not cover removed nodes yet!');
+
+            // TODO: make it cleaner
+            element.observer.observe(element, { childList: true });
+        }
+    }
 
     // Fires when an instance was removed from the document
     JuicyElementPrototype.detachedCallback = function() {};
@@ -72,27 +136,17 @@
         }
     };
 
-    JuicyElementPrototype.distributeNodes = function(){
-        // <V1 slot shim>
-        this.shadowRoot.firstElementChild.appendChild(
-            distributeJuicyElements(Array.prototype.slice.call(this.children, 0), this.setup, '',  0, this)
-        );
-        // </V1 slot shim>
-    }
 
-    function distributeJuicyElements(nodesList, conf, prefix, shift, parent, fragment){
+    function distributeJuicyElements(elementsMap, nodesList, conf, prefix, shift, parent, fragment, scopePrefix, scopedIndex){
         var tiles = [], tile, child,
-            id, scopePrefix = '', scopedIndex = 0;
+            id;
+        scopePrefix = scopePrefix || '';
+        scopedIndex = scopedIndex || 0;
         // <css display contents shim>
         var nodesList = nodesList.filter(function(el){
             return !el._juicyExplodedParent || el._juicyExplodedParent == parent;
         });
         // </css display contents shim>
-        // <V1 slot shim>
-        if(!fragment){
-            fragment = document.createDocumentFragment();
-        }
-        // </V1 slot shim>
         for (var nodeNo = 0, len = nodesList.length; nodeNo < len; nodeNo++) {
             child = nodesList[nodeNo];
             // id scoping magic
@@ -100,9 +154,15 @@
             if (child.tagName === "JUICY-TILE-GROUP") {
                 scopePrefix = child.getAttribute("name") || "";
                 scopePrefix += "/";
+                child._juicyScopePrefix = scopePrefix;
+                child._juicyScopedIndex = -1;
                 scopedIndex = 0;
                 continue;
             }
+            // Mark each node with scope prefix, so elements added on fly will be aware of the scope
+            child._juicyScopePrefix = scopePrefix;
+            child._juicyScopedIndex = scopedIndex;
+            // construct juicy-element id
             id = prefix + scopePrefix + scopedIndex;
             scopedIndex++;
             //id = i;
@@ -112,6 +172,12 @@
             tile = frag.firstElementChild;
             tile.id = id;
             tile.parent = child;
+            // <V1 assignedSlot shim>
+            // https://www.w3.org/TR/shadow-dom/#extensions-to-nondocumenttypechildnode-interface
+            elementsMap[id] = tile;
+            child._juicyElementId = id;
+            // child._juicyAssignedShadowElement = tile;
+            // </V1 assignedSlot shim>
             tile.firstChild.setAttribute("select", "[juicy-composer='" + id + "']");
             fragment.appendChild(frag);
             // </V1 slot shim>
@@ -133,7 +199,7 @@
                     child.style.display = 'none';
                     tile.classList.add('exploded');
                     child._juicyExplodedChildren = grandChilden;
-                    distributeJuicyElements(grandChilden, conf[id], id + '/', 0, child, fragment);
+                    distributeJuicyElements(elementsMap, grandChilden, conf[id], id + '/', 0, child, fragment);
                     // </css display contents shim>
                 }
             } else {
@@ -155,7 +221,7 @@
                     tile.classList.remove('exploded');
                 }
                 // check descendeants
-                distributeJuicyElements(grandChilden, conf[id], id + '/', 0, child, fragment);
+                distributeJuicyElements(elementsMap, grandChilden, conf[id], id + '/', 0, child, fragment);
             }
             //if (elem.setAttribute) {
             // attach a selectable key to each light-dom node
@@ -171,6 +237,49 @@
         return fragment;
         // </V1 slot shim>
 
+    }
+    /**
+     * Clear shadow DOM structure for given elements,
+     * implode children if needed.
+     * @param  {NodeList} nodeList list of nodes to remove
+     */
+    function undistributeJuicyElements(elementsMap, nodeList){
+        var explodedNodes, shadowElementId, shadowElement;
+        for(var nodeNo = 0, len = nodeList.length; nodeNo < len; nodeNo++){
+            var node = nodeList[nodeNo];
+            if(node._juicyExplodedChildren){
+                // clean cross references for easier GC
+                explodedNodes = node._juicyExplodedChildren;
+                node._juicyExplodedChildren = null;
+
+                // undistribute exploded nodes
+                undistributeJuicyElements(node._juicyExplodedChildren)
+            }
+
+            // <V1 assignedSlot shim>
+            // https://www.w3.org/TR/shadow-dom/#extensions-to-nondocumenttypechildnode-interface
+            // child.assignedSlot.parentElement.remove();
+            shadowElementId = node._juicyElementId;
+            shadowElement = elementsMap[shadowElementId];
+            elementsMap[shadowElementId] = undefined;
+            if(shadowElement){
+                shadowElement.parentNode.removeChild(shadowElement);
+            }
+            // </V1 assignedSlot shim>
+
+        }
+    }
+
+    function filterElements(nodeList){
+        return Array.prototype.filter.call(nodeList, function(node){
+            return !(node instanceof Text) &&
+                !(node instanceof HTMLLinkElement) &&
+                !(node instanceof HTMLStyleElement) &&
+                !(node instanceof HTMLTemplateElement) &&
+                // !(node.nodeName == "PUPPET-MORPHURL") && //ok, this is too much. ideas?
+                !(node instanceof HTMLScriptElement) &&
+                !(node instanceof Comment);
+        });
     }
 
     document.registerElement('juicy-composer', {

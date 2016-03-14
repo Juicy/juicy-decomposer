@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+
+    <script src="../../webcomponentsjs/webcomponents.js"></script>
+    <script src="../../web-component-tester/browser.js"></script>
+
+    <link rel="import" href="../juicy-composer.html">
+</head>
+
+<body>
+    <test-fixture id="element">
+        <template>
+            <juicy-composer>
+                <template id="template"></template>
+                <script id="script"></script>
+                <link id="link">
+                Text
+                <style id="style"></style>
+                <!-- comment -->
+            </juicy-composer>
+        </template>
+    </test-fixture>
+</body>
+<script>
+    var juicyElement;
+    describe('juicy-composer', function() {
+
+        beforeEach(function() {
+            juicyElement = fixture('element');
+        });
+        it('should filter (distribute on root level, NOT into `juicy-tile-list`): templates, text nodes, scripts, links, styles, comments', function(){
+                var firstChild = juicyElement.querySelector('#template');
+                var juicyTileList = juicyElement.shadowRoot.querySelector('juicy-tile-list');
+                var rootDistribution = juicyElement.shadowRoot.querySelector(':host>content') ||
+                                        juicyElement.shadowRoot.querySelector('content');// for shimmed browsers
+
+                expect(juicyTileList).to.be.not.null;
+                // In shimmed IE it's shimm object, not an HTMLElement
+                // expect(juicyTileList).to.be.an.instanceOf(HTMLElement);
+
+                expect(juicyTileList.children).to.be.empty;
+                expect(juicyTileList.childNodes).to.be.empty;
+                expect(rootDistribution.getDistributedNodes().length).to.be.equal(11);
+                // expect(rootDistribution.getDistributedNodes()).to.be.eql(juicyElement.childNodes);
+                // for shimmed browsers:
+                expect([].slice.call(rootDistribution.getDistributedNodes())).to.be.eql([].slice.call(juicyElement.childNodes));
+        });
+    });
+</script>
+
+</html>

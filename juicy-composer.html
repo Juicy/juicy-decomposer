@@ -4,7 +4,7 @@
         .exploded{
             display: none;
         }
-        .juicy-composer{
+        .juicy-element{
             border: 1px solid black;
             padding: 0.3em;
             margin: 0.3em;
@@ -13,14 +13,14 @@
     <!-- get component name from attribute -->
     <!-- <juicy-tile-list style="border: 1px solid black;"> -->
         <!-- In case of Shadow DOM v1, that would be enough -->
-        <!-- <slot name="juicy-composer" later_slot=".."></slot> -->
+        <!-- <slot name="juicy-element" later_slot=".."></slot> -->
         <!-- With v0 we need to create insertion point for every tile amually -->
-        <!-- <div><content select="[juicy-composer]"></content></div> -->
+        <!-- <div><content select="[juicy-element]"></content></div> -->
     <!-- </juicy-tile-list> -->
     <content></content>
 </template>
 <template id="tile-decorator">
-    <div class="juicy-composer"><content></content></div>
+    <div class="juicy-element"><content></content></div>
 </template>
 <script>
 (function() {
@@ -29,7 +29,7 @@
     // Creates an object based in the HTML Element prototype
     var JuicyElementPrototype = Object.create(HTMLElement.prototype);
 
-    JuicyElementPrototype.listName = "juicy-tile-list___";
+    JuicyElementPrototype.listName = "juicy-tile-list";
 
     // <V1 assignedSlot shim>
     /**
@@ -38,14 +38,21 @@
      */
     JuicyElementPrototype.elementsMap = null;
     // </V1 assignedSlot shim>
-    // Fires when an instance of the element is created
-    // TODO mutation observer
+
+    /**
+    * Map of elements to explode - make its children also managable tiles.
+    * Key is the ID build in the composer way.
+    * Value is true | false
+    * @type {Object}
+    */
+    JuicyElementPrototype.setup = null;
+    /**
+     * Creates a juicy-composer, runs #stamp method, and attaches mutation observer.
+     */
     JuicyElementPrototype.createdCallback = function() {
         var that = this;
         console.info('created children.length', this.children.length);
-        this.setup = {
-            'People/1': true
-        };
+        this.attributeChangedCallback('setup', this.setup, this.getAttribute('setup'));
         this.elementsMap = {};
 
         this.stamp();
@@ -63,7 +70,10 @@
         // IDEA: make it cofigurable?
         this.observer.observe(this, { childList: true });
     };
-
+    /**
+     * Creates shadow root, stamps juicy-element wrappers and insertion points into shadow dom, and modify light dom according to given setup.
+     * @see distributeJuicyElements
+     */
     JuicyElementPrototype.stamp = function(){
         var template = document.importNode(templ, true);
         this.shadowContainer = document.createElement(this.listName);
@@ -93,6 +103,11 @@
         // debugger
         // this.distributeNodes();
     };
+    /**
+     * Handles mutations.
+     * Applies setup, and distribution to added nodes, cleans and undistributes removed nodes.
+     * @param  {MutationRecord} mutation mutation of an element
+     */
     JuicyElementPrototype.update = function(mutation){
         if (mutation.addedNodes.length || mutation.removedNodes.length) {
             var element = mutation.target || this;
@@ -114,7 +129,7 @@
             if(mutation.removedNodes.length){
                 undistributeJuicyElements(element.elementsMap, mutation.removedNodes);
             }
-            console.error('update does not cover removed nodes yet!');
+            // console.error('update does not cover removed nodes yet!');
 
             // TODO: make it cleaner
             element.observer.observe(element, { childList: true });
@@ -124,7 +139,14 @@
     // Fires when an instance was removed from the document
     JuicyElementPrototype.detachedCallback = function() {};
 
-    // Fires when an attribute was added, removed, or updated
+    /**
+     * Apply changes of attributes
+     * `list-name` - recreates element TBD
+     * `setup` - updates shadow DOM structure TBD
+     * @param  {String} attr   attribute name
+     * @param  {String} oldVal old value
+     * @param  {String} newVal new value
+     */
     JuicyElementPrototype.attributeChangedCallback = function(attr, oldVal, newVal) {
         switch(attr){
             case "list-name":
@@ -132,11 +154,43 @@
                 this.createdCallback();
                 // TODO: replace nested structure
                 break;
-                // TODO setup change
+            case 'setup':
+                if (newVal && typeof newVal === "string") {
+                    try {
+                        newVal = JSON.parse(newVal);
+                    } catch (ex) {
+                        console.warn("Invalid JSON provided for setup\r\n", ex, newVal);
+                    }
+                    this.setup = newVal;
+                } else {
+                    this.setup = newVal || {};
+                }
+                // TODO setter that updates?
+                break;
         }
     };
 
-
+    /**
+     * Distributes nodes according to setup.
+     * - Build juicy-element ids
+     * 	- Use DOM order as base
+     * 	- Apply juicy-tile-group prefix if given (to distinguish elements given within same elemen but by different vendors)
+     * 	- Apply nesting prefix, if elements were exploded
+     * - Create juicy-element decorator/wrapper per each distributed element - to workaround lack of SD.V1 <slot> element, and give more encapsulated element for `juicy-tile-*`
+     * - Explode recursively tiles according to given setup
+     * - Update elementsMap list to shim SD.V1 .assignedSlot method
+     *
+     * @param  {Object} elementsMap map of elements to explode id->shadow dom juicy-element
+     * @param  {NodeList|Array} nodesList   list of nodes to be distributed
+     * @param  {Object} conf        configuration map of elements to explode id->true|false
+     * @param  {String} prefix      prefix to be applied to all created ids for shadow juicy-elements
+     * @param  {Number} shift       how far should indexes for ids should be shifted
+     * @param  {HTMLElement} parent      parent element of given nodes
+     * @param  {DocumentFragment} fragment    where juicy-elements should be aadded
+     * @param  {String} scopePrefix current scope (juicy-tile-scope) prefix
+     * @param  {Number} scopedIndex current scope index
+     * @return {DocumentFragment}             document fragmen that was altered by distribution
+     */
     function distributeJuicyElements(elementsMap, nodesList, conf, prefix, shift, parent, fragment, scopePrefix, scopedIndex){
         var tiles = [], tile, child,
             id;
@@ -178,7 +232,7 @@
             child._juicyElementId = id;
             // child._juicyAssignedShadowElement = tile;
             // </V1 assignedSlot shim>
-            tile.firstChild.setAttribute("select", "[juicy-composer='" + id + "']");
+            tile.firstChild.setAttribute("select", "[juicy-element='" + id + "']");
             fragment.appendChild(frag);
             // </V1 slot shim>
             // exploding:
@@ -191,9 +245,10 @@
                     // <css display contents shim>
                     var parent = child.parentNode;
                     // TODO: do filtering like for j-t-l?
+                    var nextSibling = child.nextSibling;
                     for(var explodedNo = 0, toExplode = grandChilden.length; explodedNo < toExplode; explodedNo++){
                         grandChilden[explodedNo]._juicyExplodedParent = child;
-                        parent.insertBefore(grandChilden[explodedNo], child.nextSibling);
+                        parent.insertBefore(grandChilden[explodedNo], nextSibling);
                     }
                     child._juicyOldDisplay = child.style.display;
                     child.style.display = 'none';
@@ -225,7 +280,7 @@
             }
             //if (elem.setAttribute) {
             // attach a selectable key to each light-dom node
-            child.setAttribute('juicy-composer', id);
+            child.setAttribute('juicy-element', id);
             // // specify a <content> with that key
             // tiles.push(tile);
             // // add also key based
@@ -241,6 +296,7 @@
     /**
      * Clear shadow DOM structure for given elements,
      * implode children if needed.
+     * @param {Object} elementsMap map of juicy-elements to update - (SD.V1 assignedSlot shim)
      * @param  {NodeList} nodeList list of nodes to remove
      */
     function undistributeJuicyElements(elementsMap, nodeList){
@@ -253,7 +309,7 @@
                 node._juicyExplodedChildren = null;
 
                 // undistribute exploded nodes
-                undistributeJuicyElements(node._juicyExplodedChildren)
+                undistributeJuicyElements(elementsMap, explodedNodes);
             }
 
             // <V1 assignedSlot shim>
@@ -270,6 +326,11 @@
         }
     }
 
+    /**
+     * Filters nodes that we would like to compose
+     * @param  {nodesList} nodeList nodes list to filter
+     * @return {Array}          array of filtered ndoes
+     */
     function filterElements(nodeList){
         return Array.prototype.filter.call(nodeList, function(node){
             return !(node instanceof Text) &&

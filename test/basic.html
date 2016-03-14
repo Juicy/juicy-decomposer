@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+
+    <script src="../../webcomponentsjs/webcomponents.js"></script>
+    <script src="../../web-component-tester/browser.js"></script>
+
+    <link rel="import" href="../juicy-composer.html">
+</head>
+
+<body>
+    <test-fixture id="element">
+        <template>
+            <juicy-composer>
+                <div id="childNode1"></div>
+                <div id="childNode2"></div>
+            </juicy-composer>
+        </template>
+    </test-fixture>
+</body>
+<script>
+    var juicyElement;
+    describe('juicy-composer', function() {
+
+        beforeEach(function() {
+            juicyElement = fixture('element');
+        });
+
+        it('should distribute its children withinin shadow DOM into elements with class `.juicy-element` wrapped by `juicy-tile-list`', function() {
+            var firstChild = juicyElement.querySelector('#childNode1');
+            var secondChild = juicyElement.querySelector('#childNode2');
+            var juicyTileList = juicyElement.shadowRoot.querySelector('juicy-tile-list');
+
+            expect(juicyTileList).to.be.not.null;
+            // In shimmed IE it's shimm object, not an HTMLElement
+            // expect(juicyTileList).to.be.an.instanceOf(HTMLElement);
+
+            expect(juicyTileList.children[0]).to.be.not.null;
+            expect(juicyTileList.children[0]).to.be.an.instanceOf(HTMLElement);
+            expect(juicyTileList.children[0].classList.contains('juicy-element')).to.be.true;
+            expect(juicyTileList.children[0].querySelector('content')).to.be.not.null;
+            expect(juicyTileList.children[0].querySelector('content').getDistributedNodes().length).to.be.equal(1);
+            expect(juicyTileList.children[0].querySelector('content').getDistributedNodes()[0]).to.be.equal(firstChild);
+
+            expect(juicyTileList.children[1]).to.be.not.null;
+            expect(juicyTileList.children[1]).to.be.an.instanceOf(HTMLElement);
+            expect(juicyTileList.children[1].classList.contains('juicy-element')).to.be.true;
+            expect(juicyTileList.children[1].querySelector('content')).to.be.not.null;
+            expect(juicyTileList.children[1].querySelector('content').getDistributedNodes().length).to.be.equal(1);
+            expect(juicyTileList.children[1].querySelector('content').getDistributedNodes()[0]).to.be.equal(secondChild);
+        });
+    });
+</script>
+
+</html>

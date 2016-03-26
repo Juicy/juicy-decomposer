@@ -8,26 +8,26 @@
     <script src="../../webcomponentsjs/webcomponents.js"></script>
     <script src="../../web-component-tester/browser.js"></script>
 
-    <link rel="import" href="../juicy-composer.html">
+    <link rel="import" href="../juicy-decomposer.html">
 </head>
 
 <body>
     <test-fixture id="element">
         <template>
-            <juicy-composer>
+            <juicy-decomposer>
                 <template id="template"></template>
                 <script id="script"></script>
                 <link id="link">
                 Text
                 <style id="style"></style>
                 <!-- comment -->
-            </juicy-composer>
+            </juicy-decomposer>
         </template>
     </test-fixture>
 </body>
 <script>
     var juicyElement;
-    describe('juicy-composer', function() {
+    describe('juicy-decomposer', function() {
 
         beforeEach(function() {
             juicyElement = fixture('element');

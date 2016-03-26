@@ -3,23 +3,23 @@
 <head>
 
     <meta charset="utf-8">
-    <title>&lt;juicy-composer&gt;</title>
+    <title>&lt;juicy-decomposer&gt;</title>
     <link rel="stylesheet" href="http://juicy.github.io/github-markdown-css/github-markdown.css">
 
     <!-- Imports polyfill -->
     <script src="../webcomponentsjs/webcomponents.min.js"></script>
 
     <!-- Imports custom element -->
-    <link rel="import" href="juicy-composer.html">
+    <link rel="import" href="juicy-decomposer.html">
     <link rel="import" href="../juicy-tile-list/src/juicy-tile-list.html">
     <style>
         body.markdown-body{
             overflow: auto;
         }
-        juicy-composer > *{
+        juicy-decomposer > *{
             background-color: lightpink;
         }
-        juicy-composer > div > *{
+        juicy-decomposer > div > *{
             background-color: lightgreen;
         }
     </style>
@@ -27,7 +27,7 @@
 <body class="markdown-body">
 
     <!-- Runs custom element -->
-    <juicy-composer element-name="juicy-tile-table" setup='{
+    <juicy-decomposer element-name="juicy-tile-table" setup='{
         "People/1": true
     }'>
     <juicy-tile-group name="People"></juicy-tile-group>
@@ -101,7 +101,7 @@
             </template> -->
             <!-- <link is="puppet-redirect" history url="{{model.RedirectUrl$}}" /> -->
         <!-- </template> -->
-    </juicy-composer>
+    </juicy-decomposer>
 
 </body>
 </html>

@@ -3,10 +3,10 @@ module.exports = function(grunt) {
     grunt.initConfig({
         bump: {
             options: {
-                files: ['package.json', 'bower.json', 'juicy-composer.html'],
+                files: ['package.json', 'bower.json', 'juicy-decomposer.html'],
                 commit: true,
                 commitMessage: '%VERSION%',
-                commitFiles: ['package.json', 'bower.json', 'juicy-composer.html'],
+                commitFiles: ['package.json', 'bower.json', 'juicy-decomposer.html'],
                 createTag: true,
                 tagName: '%VERSION%',
                 tagMessage: 'Version %VERSION%',

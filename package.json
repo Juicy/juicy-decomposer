@@ -1,8 +1,8 @@
 {
-  "name": "juicy-composer",
+  "name": "juicy-decomposer",
   "version": "0.0.0",
-  "description": "Awesome, Juicy Custom Element",
-  "main": "juicy-composer.html",
+  "description": "Custom element to de-compose elements according to JSON setup.",
+  "main": "juicy-decomposer.html",
   "directories": {
     "test": "test"
   },
@@ -18,10 +18,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Juicy/juicy-composer"
+    "url": "https://github.com/Juicy/juicy-decomposer"
   },
   "bugs": {
-    "url": "https://github.com/Juicy/juicy-composer/issues"
+    "url": "https://github.com/Juicy/juicy-decomposer/issues"
   },
   "license": "MIT"
 }

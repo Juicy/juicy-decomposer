@@ -1,4 +1,4 @@
-<!-- juicy-composer @version: 0.0.0 @license: MIT -->
+<!-- juicy-decomposer @version: 0.0.0 @license: MIT -->
 <template id="shadow">
     <style>
         .exploded{
@@ -47,7 +47,7 @@
     */
     JuicyElementPrototype.setup = null;
     /**
-     * Creates a juicy-composer, runs #stamp method, and attaches mutation observer.
+     * Creates a juicy-decomposer, runs #stamp method, and attaches mutation observer.
      */
     JuicyElementPrototype.createdCallback = function() {
         var that = this;
@@ -343,7 +343,7 @@
         });
     }
 
-    document.registerElement('juicy-composer', {
+    document.registerElement('juicy-decomposer', {
         prototype: JuicyElementPrototype
     });
 }());
